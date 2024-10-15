@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>투두리스트 공유</title>
+        <style>
+            body {
+                background-color: black;
+                color: white;
+                font-family: sans-serif;
+                text-align: center;
+            }
+            input {
+                padding: 10px;
+                font-size: 16px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                outline: none;
+                transition: border-color 0.3s;
+                width: 300px;
+                transition: background-color 0.3s;
+            }
+            input:focus {
+                border-color: white;
+            }
+            input:hover {
+                background-color: black;
+                color: white;
+            }
+            button {
+                margin: 20px;
+                padding: 10px 20px;
+                font-size: 16px;
+                background-color: #fff;
+                color: #000;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+            button:hover {
+                background-color: #000000;
+                color: white;
+            }
+            li {
+                list-style: none;
+                margin: 10px 0;
+            }
+            .completed {
+                text-decoration: line-through;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>투두리스트</h1>
+        <div id="todo-list"></div>
+        <input type="text" id="new-todo" placeholder="할 일 추가..." />
+        <button onclick="addTodo()">추가</button>
+        <p>
+            <strong>공유 링크:</strong>
+            <span id="share-url"></span>
+        </p>
+        <button onclick="copyToClipboard()">복사</button>
+
+        <script src="https://cdn.jsdelivr.net/npm/lz-string/libs/lz-string.min.js"></script>
+        <script>
+            let todoList = [];
+
+            // URL에서 압축된 투두리스트 데이터를 가져오기
+            function loadFromURL() {
+                const params = new URLSearchParams(window.location.search);
+                const todosParam = params.get('todos');
+                if (todosParam) {
+                    try {
+                        // LZString을 이용해 압축된 데이터를 복원
+                        const decompressedTodos = LZString.decompressFromEncodedURIComponent(todosParam);
+                        todoList = JSON.parse(decompressedTodos);
+                        renderTodoList();
+                    } catch (e) {
+                        alert('데이터 복구 중 오류가 발생했습니다.');
+                    }
+                }
+            }
+
+            // 투두리스트 렌더링
+            function renderTodoList() {
+                const ul = document.getElementById('todo-list');
+                ul.innerHTML = '';
+                todoList.forEach((todo, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = todo.text;
+
+                    if (todo.completed) {
+                        li.classList.add('completed');
+                    }
+
+                    // 완료 버튼
+                    const completeButton = document.createElement('button');
+                    completeButton.textContent = '완료';
+                    completeButton.onclick = function () {
+                        toggleComplete(index);
+                    };
+
+                    // 삭제 버튼
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = '삭제';
+                    deleteButton.onclick = function () {
+                        deleteTodo(index);
+                    };
+
+                    li.appendChild(completeButton);
+                    li.appendChild(deleteButton);
+                    ul.appendChild(li);
+                });
+                updateShareURL();
+            }
+
+            // 투두리스트에 새로운 항목 추가
+            function addTodo() {
+                const newTodoInput = document.getElementById('new-todo');
+                const newTodo = newTodoInput.value.trim();
+                if (newTodo) {
+                    todoList.push({ text: newTodo, completed: false });
+                    newTodoInput.value = '';
+                    renderTodoList();
+                }
+            }
+
+            // 투두리스트 항목 삭제
+            function deleteTodo(index) {
+                todoList.splice(index, 1); // index에 해당하는 항목을 삭제
+                renderTodoList();
+            }
+
+            // 투두리스트 항목 완료/미완료 토글
+            function toggleComplete(index) {
+                todoList[index].completed = !todoList[index].completed; // 완료 상태를 토글
+                renderTodoList();
+            }
+
+            // URL에 투두리스트 파라미터 추가
+            function updateShareURL() {
+                // LZString으로 데이터를 압축하여 URL에 넣기
+                const compressedTodos = LZString.compressToEncodedURIComponent(JSON.stringify(todoList));
+                const shareURL = `${window.location.origin}${window.location.pathname}?todos=${compressedTodos}`;
+                document.getElementById('share-url').textContent = shareURL;
+            }
+
+            // 페이지 로딩 시 URL에서 투두리스트 불러오기
+            loadFromURL();
+
+            // 공유 링크 복사
+            function copyToClipboard() {
+                const shareURL = document.getElementById('share-url').textContent;
+                const tempInput = document.createElement('input');
+                tempInput.value = shareURL;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                alert('link copied');
+            }
+        </script>
+    </body>
+</html>
